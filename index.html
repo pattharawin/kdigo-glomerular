@@ -824,7 +824,7 @@ reevaluate();
 .print-help-panel h2{font-size:20px;margin:0 0 9px}.print-help-panel p,.print-help-panel li{font-size:14px;line-height:1.55}
 .print-help-panel ol{padding-left:21px}.print-help-panel .actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:16px}
 .print-help-panel button{min-height:44px}
-@media print{.print-help-backdrop,#printHelpButton{display:none!important}}
+@media print{.print-help-backdrop{display:none!important}}
 </style>
 <script>
 /* LINE's embedded WebView may not provide the native print service. */
@@ -832,15 +832,12 @@ reevaluate();
  const printButton=Array.from(document.querySelectorAll('button')).find(b=>b.textContent.includes('Print / Save as PDF'));
  if(!printButton)return;
  const inLine=/\bLine\//i.test(navigator.userAgent)||/\bLINE\b/i.test(navigator.userAgent);
- const help=document.createElement('button');help.id='printHelpButton';help.type='button';help.className='btn secondary';help.textContent='Printing from LINE?';
- printButton.after(help);
  const overlay=document.createElement('div');overlay.className='print-help-backdrop no-print';overlay.hidden=true;overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');overlay.setAttribute('aria-label','Print from LINE help');
- overlay.innerHTML='<div class="print-help-panel"><h2>Print / Save as PDF</h2><p>LINE’s built-in browser may block the Android print dialog. For reliable printing:</p><ol><li>Open this page in <b>Chrome or Samsung Internet</b> using LINE’s menu (⋮ → Open in external browser), or copy the website link below.</li><li><b>Enter patient information in the external browser</b>—entries made in LINE will not automatically transfer.</li><li>Choose <b>Print / Save as PDF</b> there.</li></ol><p class="note">The link contains no patient details. If you already entered a plan in LINE, use “Copy plan summary” before switching browsers.</p><div class="actions"><button class="btn" type="button" id="printCopyLink">Copy website link</button><button class="btn secondary" type="button" id="printTry">Try printing here</button><button class="btn secondary" type="button" id="printClose">Close</button></div></div>';
+ overlay.innerHTML='<div class="print-help-panel"><h2>Print / Save as PDF</h2><p>LINE’s built-in browser may block the Android print dialog. For reliable printing:</p><ol><li>Open this page in <b>Chrome or Samsung Internet</b> using LINE’s menu (⋮ → Open in external browser), or copy the website link below.</li><li><b>Enter patient information in the external browser</b>—entries made in LINE will not automatically transfer.</li><li>Choose <b>Print / Save as PDF</b> there.</li></ol><p class="note">The link contains no patient details. If you already entered a plan in LINE, use “Copy plan summary” before switching browsers.</p><div class="actions"><button class="btn" type="button" id="printTry">Print</button><button class="btn secondary" type="button" id="printCopyLink">Copy website link</button><button class="btn secondary" type="button" id="printClose">Close</button></div></div>';
  document.body.append(overlay);
  const show=()=>{overlay.hidden=false};const close=()=>{overlay.hidden=true};
- help.addEventListener('click',show);
- if(inLine){printButton.textContent='Print / Save as PDF (LINE help)';printButton.onclick=show;}
- else printButton.onclick=()=>window.print();
+ printButton.textContent='Print / Save as PDF';
+ printButton.onclick=inLine?show:()=>window.print();
  $('printClose').onclick=close;
  $('printTry').onclick=()=>{close();window.print()};
  $('printCopyLink').onclick=async()=>{
@@ -858,7 +855,7 @@ reevaluate();
 .copy-plan-panel h2{font-size:19px;margin:0 0 8px}
 .copy-plan-panel textarea{display:block;width:100%;height:min(52vh,480px);white-space:pre-wrap;border:1px solid #bed3d8;border-radius:10px;padding:12px;font:14px/1.55 system-ui,sans-serif;color:#213944;background:#faffff;resize:vertical}
 .copy-plan-panel .actions{flex-wrap:wrap}.copy-plan-panel button{min-height:44px}
-@media print{.copy-plan-backdrop,#viewPlanText{display:none!important}}
+@media print{.copy-plan-backdrop{display:none!important}}
 </style>
 <script>
 /* Readable LINE-ready plain-text summary and clipboard fallback. */
@@ -931,7 +928,6 @@ reevaluate();
    if(ok){button.textContent='Plan copied ✓';setTimeout(()=>button.textContent='Copy plan summary',2300)}
    else{show();status('Automatic copying was blocked. Use Select all or long-press inside the text box.')}
  };
- const view=document.createElement('button');view.id='viewPlanText';view.type='button';view.className='btn secondary';view.textContent='View / select plan text';button.after(view);view.onclick=()=>{show();status('You can copy this text manually or use Copy text.')};
  $('planCopyAgain').onclick=async()=>{const ok=await copyText(preview.value);status(ok?'Copied. You can paste into LINE.':'LINE blocked copying. Long-press the text and choose Copy.')};
  $('planSelectAll').onclick=()=>{preview.focus();preview.select();preview.setSelectionRange(0,preview.value.length);status('Text selected. Use the phone’s Copy command.')};
  $('planClose').onclick=close;
