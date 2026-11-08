@@ -868,40 +868,46 @@ reevaluate();
  const value=id=>$(id)?.value||'Not entered';
  const chosen=id=>$(id)?.selectedOptions?.[0]?.textContent?.trim()||'Not specified';
  function buildPlainTextPlan(){
-   const lines=['KDIGO GLOMERULAR TREATMENT PLAN','Clinical review worksheet — not a prescription','','DATE: '+value('dateDisplay'),''];
-   lines.push('DIAGNOSIS & COURSE',chosen('diagnosis'));
-   if(!$('stage')?.closest('.field')?.hidden)lines.push('Course: '+chosen('stage'));
-   if(!$('igaPhenotype')?.closest('.field')?.hidden)lines.push('IgAN phenotype: '+chosen('igaPhenotype'));
-   if(!$('mnCourse')?.closest('.detailpanel')?.hidden)lines.push('MN course: '+chosen('mnCourse'));
-   lines.push('','PATIENT & CLINICAL DATA');
-   lines.push('Age: '+value('age')+' years  |  Weight: '+value('weight')+' kg  |  Height: '+value('height')+' cm');
-   lines.push('BP: '+value('sbp')+'/'+value('dbp')+' mmHg');
-   lines.push('Creatinine: '+(value('creatinine')==='Not entered'?'—':value('creatinine'))+' mg/dL  |  eGFR: '+value('egfr')+' mL/min/1.73 m²');
-   lines.push('Albumin: '+value('albuminDisplay')+' g/dL  |  Proteinuria: '+value('protein')+' g/day');
-   lines.push('BSA: '+trim($('bsa')?.textContent));
+   const lines=['KDIGO GLOMERULAR PLAN','Date: '+value('dateDisplay'),'','【DIAGNOSIS】',chosen('diagnosis')];
+   if(!$('stage')?.closest('.field')?.hidden)lines.push('- Course: '+chosen('stage'));
+   if(!$('igaPhenotype')?.closest('.field')?.hidden)lines.push('- IgAN phenotype: '+chosen('igaPhenotype'));
+   if(!$('mnCourse')?.closest('.detailpanel')?.hidden)lines.push('- MN course: '+chosen('mnCourse'));
+   lines.push('','【PATIENT】');
+   lines.push('- '+value('age')+' years | '+value('weight')+' kg | BSA '+trim($('bsa')?.textContent));
+   lines.push('- BP '+value('sbp')+'/'+value('dbp')+' mmHg | eGFR '+value('egfr'));
+   if(value('creatinine')!=='Not entered')lines.push('- Cr '+value('creatinine')+' mg/dL');
+   lines.push('- Albumin '+value('albuminDisplay')+' g/dL | Protein '+value('protein')+' g/day');
    const modifiers=Array.from(document.querySelectorAll('.intake-panel .checkrow input:checked')).map(x=>trim(x.closest('label')?.textContent));
-   lines.push('Modifiers: '+(modifiers.join(', ')||'None selected'));
-   const context=trim(value('notes'));if(context&&context!=='Not entered')lines.push('Additional context: '+context);
-   lines.push('','SELECTED TREATMENT',trim($('doseTitle')?.textContent));
-   const dose=trim($('doses')?.innerText||$('doses')?.textContent);if(dose)lines.push('',dose);
+   if(modifiers.length)lines.push('- Modifiers: '+modifiers.join(', '));
+   const context=trim(value('notes'));if(context&&context!=='Not entered')lines.push('- Notes: '+context);
+   lines.push('','【TREATMENT】',trim($('doseTitle')?.textContent));
+   const doseParas=Array.from($('doses')?.querySelectorAll('p')||[]).map(x=>trim(x.innerText||x.textContent)).filter(Boolean);
+   for(const p of doseParas.slice(0,3))lines.push('- '+p);
    const drugLevels=trim($('levelMonitoring')?.innerText||$('levelMonitoring')?.textContent);if($('levelMonitoring')&&!$('levelMonitoring').hidden&&drugLevels)lines.push('','Drug monitoring: '+drugLevels);
-   const combined=trim($('combinationPlan')?.innerText||$('combinationPlan')?.textContent);if($('combinationPlan')&&!$('combinationPlan').hidden&&combined)lines.push('','Combination details:',combined);
-   const kidney=trim($('kidneyPlan')?.innerText||$('kidneyPlan')?.textContent);if($('kidneyPlan')&&!$('kidneyPlan').hidden&&kidney)lines.push('','Kidney-protective plan:',kidney);
+   const combo=$('combinationPlan');
+   if(combo&&!combo.hidden){
+     const meds=Array.from(combo.querySelectorAll('tbody tr')).slice(0,5);
+     for(const tr of meds){const cells=Array.from(tr.cells).map(c=>trim(c.innerText||c.textContent));if(cells.length>1)lines.push('- '+cells[0]+': '+cells.slice(1).join(' | '));}
+   }
+   const kidney=$('kidneyPlan');if(kidney&&!kidney.hidden){const plan=trim($('renalSummary')?.textContent);if(plan)lines.push('- Kidney protection: '+plan);}
    const rows=Array.from($('schedule')?.querySelectorAll('tbody tr')||[]);
-   lines.push('','ADMINISTRATION PLAN'+(rows.length>8?' (FIRST 8 ENTRIES)':''));
-   if(rows.length){for(const row of rows.slice(0,8)){
+   lines.push('','【DOSING / SCHEDULE】');
+   if(rows.length){for(const row of rows.slice(0,16)){
       const cells=Array.from(row.cells).map(c=>trim(c.innerText||c.textContent));
-      const parts=cells.slice(1).map((c,i)=>c&&c!=='—'?(i===0?'Treatment':i===1?'Steroid/step':'Check')+': '+c:'').filter(Boolean);
-      lines.push('• '+cells[0],...parts.map(p=>'   '+p));
-   }}else lines.push('Refer to the on-screen schedule.');
-   const foot=trim($('scheduleFoot')?.textContent);if(foot)lines.push('',foot);
+      const meds=cells.slice(1,cells.length===4?3:2).filter(c=>c&&c!=='—');
+      lines.push('- '+cells[0]+': '+(meds.join(' + ')||'Review / follow-up'));
+   }}else lines.push('- See schedule in the full worksheet.');
+   if(rows.length>16)lines.push('- Further dates are listed in the worksheet.');
    const flags=Array.from($('flags')?.querySelectorAll('.flag')||[]).map(x=>trim(x.textContent)).filter(Boolean);
-   lines.push('','SAFETY & ELIGIBILITY REVIEW',...flags.slice(0,9).map(x=>'• '+x));
-   if(flags.length>9)lines.push('• Additional flags remain in the printable worksheet.');
+   lines.push('','【SAFETY CHECKS】',...flags.slice(0,7).map(x=>'- '+x));
+   if(flags.length>7)lines.push('- See full worksheet for '+(flags.length-7)+' additional safety notes.');
    const support=Array.from($('support')?.querySelectorAll('li')||[]).map(x=>trim(x.textContent)).filter(Boolean);
-   lines.push('','SUPPORTIVE CARE',...support.slice(0,6).map(x=>'• '+x));
-   if(support.length>6)lines.push('• Further supportive measures remain in the worksheet.');
-   lines.push('','Clinician verification is required before any treatment decision.');
+   const generic=support.slice(0,3).map(x=>x.split(';')[0].trim());
+   const specific=support.filter(x=>/PJP prophylaxis|Pneumocystis|SLE antimalarial|HCQ\/CQ retinal|Lupus nephritis:|IgAN 2025|AAV:|MN:/.test(x)).slice(0,4);
+   const shortSupport=Array.from(new Set([...generic,...specific]));
+   lines.push('','【SUPPORTIVE CARE】',...shortSupport.map(x=>'- '+x));
+   if(support.length>shortSupport.length)lines.push('- Other supportive measures: see full worksheet.');
+   lines.push('','For clinician review only. Verify doses, contraindications and monitoring before prescribing.');
    return lines.join('\n').replace(/\n{3,}/g,'\n\n');
  }
  function legacyCopy(text){
@@ -932,6 +938,7 @@ reevaluate();
  overlay.addEventListener('click',e=>{if(e.target===overlay)close()});
  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!overlay.hidden)close()});
 })();
+</script>
 
 <!-- GoatCounter Analytics -->
 <script
@@ -940,4 +947,4 @@ reevaluate();
   src="https://gc.zgo.at/count.js">
 </script>
 
-</script></body></html>
+</body></html>
